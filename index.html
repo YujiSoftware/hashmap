@@ -93,6 +93,7 @@
     table{
       border-collapse: collapse;
       width: 100%;
+      text-align: center;
     }
     thead > tr {
       background-color: #222;
@@ -132,6 +133,10 @@
       margin: 0.5em auto;
     }
 
+    span.footnote {
+      color: #444;
+    }
+
     span.img {
       display: block;
       text-align: center;
@@ -168,10 +173,8 @@ class: center, middle
 
 # 目次
 
-- HashMap って何？
-    - Hash とは？
-    - Map とは？
-- HashMap の実装
+- HashMap について
+- HashMap の実装を理解しよう！
     - new
     - put
     - get
@@ -181,33 +184,21 @@ class: center, middle
 
 ---
 
-class: center, middle
-
 # HashMap って何？
 
+
+## Map とは
+
+- a
+
+## Hash とは
+
+- b
 ---
 
 class: center, middle
 
-<p style="font-size: 72px;">
-<span style="font-size: 100px; font-weight: bold; text-decoration: underline;">Hash</span> を使った<br/>
-<span style="font-size: 100px; font-weight: bold; text-decoration: underline;">Map</span> の実装
-</p>
-
----
-
-# Map とは
-
----
-
-# Hash とは
-
----
-
-class: center, middle
-
-# HashMap の具体的な仕組みは？
-## 〜実装をもとに見ていこう！〜
+# HashMap の実装を理解しよう！
 
 ---
 
@@ -216,33 +207,204 @@ class: center, middle
 - **Java 6**
     - 2006年12月11日リリース
 - このバージョンの理由
-  - シンプルでわかりやすいから
-      - 最新の実装は、**最適化によって複雑になっている**
-        - Java 6 … 512行
-        - Java 24 … 1704行
+  - **シンプルでわかりやすいから**
+      - 最新の実装は、最適化によって複雑になっている
+      （Java 6 … 512行 / Java 24 … 1704行）
   - 本質的なアルゴリズムは同じ
 
 【 最新との違いは、最後に説明します 】
 
 ---
 
-# 説明の流れ
+# 説明に使用するコード
 
-- `new HashMap()`
-- `put("ABC", "XYZ")`
-- `get("ABC")`
+- プログラミング言語と登場年を格納
+
+```java
+Map<String, Integer> m = 
+        new HashMap<String, Integer>();
+
+m.put("Java", 1996);
+m.put("Kotlin", 2011);
+m.put("Python", 1991);
+… 中略 …
+m.put("Swift", 2014);
+
+System.out.println(m.get("Kotlin"));
+```
 
 ---
 
-# new HashMap()
+# new HashMap&amp;lt;String, String&amp;gt;()
+
+- 引数なしの場合、デフォルト値で初期化
+  - 初期容量（`capacity`）… 16
+      * 指定された値以上の2の倍数（理由は後述）
+  - 負荷係数（`loadFactor`） … 0.75
+      * この割合を超過したら、再構築が行われる
 
 ```java
-private Entry[] table = new Entry[16];
-private int size = 0;
-private float loadFactor = 0.75;
+private Entry[] table = new Entry[16];  // 初期容量
+private int size = 0; // データ数
+private float loadFactor = 0.75; // 負荷係数
 private int threshold = (int)(16 * 0.75); // = 12
-private float modCount = 0;
+private float modCount = 0;  // 同時更新チェック
 ```
+
+---
+
+# Entry の構造
+
+```java
+class Entry<K,V> implements Map.Entry<K,V> {
+    K key;
+    V value;
+    int hash;
+    Entry<K,V> next;
+}
+```
+
+---
+
+# map.put("Java", "1995") の挙動
+
+1. テーブルのどの位置（インデックス）に格納するか決定
+2. すでにキーが格納済みかどうかを確認  
+  3. 格納済みなら、値を上書き  
+  3. 未格納なら、テーブルに格納
+
+---
+
+# どの位置（インデックス）に格納するか
+
+1. ハッシュコードを取得
+2. ハッシュを計算（hash メソッド）
+3. 格納位置（インデックス）を決定（indexFor メソッド）
+
+```java
+int x = "Java".hashCode();
+//  ↑ 2301506
+
+int hash = hash(x);
+//  ↑ 2190222
+
+int i = indexFor(hash);
+//  ↑ 14
+
+```
+
+---
+
+# hash メソッドは indexFor メソッド
+
+- **ビット演算！**
+  - （詳細は次ページ）
+
+```java
+static int hash(int h) {
+  h ^= (h >>> 20) ^ (h >>> 12);
+  return h ^ (h >>> 7) ^ (h >>> 4);
+}
+```
+
+```java
+static int indexFor(int h, int length) {
+  return h & (length-1);
+}
+```
+
+---
+
+# indexFor メソッドの解説
+
+- データ格納するインデックス（今回は 0〜15）を決めたい  
+  → `key.hashCode() % table.length` を求める？
+  - でも、余りを求める計算( `%` )は遅い
+- そこで、**テーブルサイズを2の倍数とする**
+  - これなら、余りを求める **= 下位ビットを取得する**だけ
+  - つまり、AND でマスクするだけ
+
+```java
+static int indexFor(int h, int length) {
+  return h & (length-1);
+}
+```
+
+---
+
+# hash メソッドの解説
+
+- `hashCode()` をそのまま使うだけでもよい
+- でも、オブジェクトによっては**下位ビットがあまり変化しない実装になっていることがある**
+    - Float とか <span class="footnote">（例えば、1.0f と 2.0f で下位ビットが同じ）</span>
+- そこで、上位ビットの値を下位ビットに XOR で集める
+
+```java
+static int hash(int h) {
+  h ^= (h >>> 20) ^ (h >>> 12);
+  return h ^ (h >>> 7) ^ (h >>> 4);
+}
+```
+---
+
+# hash の計算
+
+```java
+static int hash(int h) {
+  h ^= (h >>> 20) ^ (h >>> 12);
+  return h ^ (h >>> 7) ^ (h >>> 4);
+}
+```
+
+---
+
+# ちなみに、Java 8 以降の場合
+
+上位ビット16 ビットを、下位に XOR するだけになった
+
+```java
+static int hash(Object key) {
+  int h = key.hashCode()
+  return h ^ (h >>> 16);
+}
+```
+
+<table>
+  <tr><!-- 10 0011 0001 1110 0100 0010 -->
+    <td style="border: none"></td>
+    <td style="background-color: aquamarine;">0000</td>
+    <td style="background-color: aquamarine;">0000</td>
+    <td style="background-color: aquamarine;">0010</td>
+    <td style="background-color: aquamarine;">0011</td>
+    <td>0001</td>
+    <td>1110</td>
+    <td>0100</td>
+    <td>0010</td>
+  </tr>
+  <tr></tr>
+    <td style="border: none">XOR</td>
+    <td>0000</td>
+    <td>0000</td>
+    <td>0000</td>
+    <td>0000</td>
+    <td style="background-color: aquamarine;">0000</td>
+    <td style="background-color: aquamarine;">0000</td>
+    <td style="background-color: aquamarine;">0010</td>
+    <td style="background-color: aquamarine;">0011</td>
+  </tr>
+  <tr style="border-top: double 3px black"></tr>
+    <td style="border: none">=</td>
+    <td>0000</td>
+    <td>0000</td>
+    <td>0010</td>
+    <td>0011</td>
+    <td>0001</td>
+    <td>1110</td>
+    <td>0110</td>
+    <td>0001</td>
+  </tr>
+</table>
+
 
 </textarea>
 <script type="text/javascript">
