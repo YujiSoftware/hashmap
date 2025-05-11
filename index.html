@@ -29,10 +29,11 @@
       font-family: 'Noto Sans JP", sans-serif';
     }
     .remark-code {
-      border: 5px silver solid;
+      border: 5px silver double;
       border-radius: 15px;
       font-size: 32px; /* 18px */
       margin: 0 -10px;
+      background-color: #F2F2F2 !important;
     }
     .remark-code, .remark-inline-code {
       font-family: "Source Code Pro", monospace;
@@ -104,6 +105,41 @@
       padding: 0 0.5em;
     }
 
+    table.bitmap tr td {
+      border: 1px solid #555;
+    }
+
+    table.bitmap tr td:nth-child(1) {
+      font-size: 32px;
+      border: none;
+    }
+
+    table.bitmap tr td:nth-child(n+1) {
+      font-size: 34px;
+      padding: 0px 4px;
+      width: 100%;
+    }
+
+    table.bitmap tr td:nth-child(4n+1) {
+      border-right: 3px double black;
+    }
+
+    table.bitmap tr td.cyan {
+      background-color: lightcyan;
+    }
+
+    table.bitmap tr td.pink {
+      background-color: pink;
+    }
+
+    table.bitmap tr td.yellow {
+      background-color: lemonchiffon;
+    }
+
+    table.bitmap tr td.green {
+      background-color: palegreen;
+    }
+
     hr {
       border: 0;
       border-bottom: 3px dashed #444;
@@ -133,7 +169,8 @@
       margin: 0.5em auto;
     }
 
-    span.footnote {
+    span.remark {
+      font-size: 32px;
       color: #444;
     }
 
@@ -179,6 +216,7 @@ class: center, middle
     - put
     - get
 - Java のバージョンごとの実装の違い
+- 効率良く使うためのコツ
 
 本日の資料： https://yuji.software/hashmap/
 
@@ -218,38 +256,74 @@ class: center, middle
 
 # 説明に使用するコード
 
-- プログラミング言語と登場年を格納
+「プログラミング言語」と「リリース年」のペアを格納
 
 ```java
 Map<String, Integer> m = 
         new HashMap<String, Integer>();
 
-m.put("Java", 1996);
+m.put("Java", 1995);
+m.put("JavaScript", 1995);
 m.put("Kotlin", 2011);
-m.put("Python", 1991);
 … 中略 …
-m.put("Swift", 2014);
 
-System.out.println(m.get("Kotlin"));
+System.out.println(m.get("Java"));
 ```
 
 ---
 
 # new HashMap&amp;lt;String, String&amp;gt;()
 
-- 引数なしの場合、デフォルト値で初期化
-  - 初期容量（`capacity`）… 16
-      * 指定された値以上の2の倍数（理由は後述）
-  - 負荷係数（`loadFactor`） … 0.75
-      * この割合を超過したら、再構築が行われる
+- コンストラクタで、フィールド変数の初期化が行われる
+- 主なフィールド変数は**4つ**（詳細は次ページ）
 
 ```java
-private Entry[] table = new Entry[16];  // 初期容量
-private int size = 0; // データ数
-private float loadFactor = 0.75; // 負荷係数
-private int threshold = (int)(16 * 0.75); // = 12
-private float modCount = 0;  // 同時更新チェック
+Entry[] table;
+int size;
+float loadFactor;
+int threshold;
 ```
+
+---
+
+# フィールド変数（1）
+
+```java
+Entry[] table;
+```
+
+- データを保持する配列
+- 容量<span class="remark">（配列サイズ）</span>は、コンストラクタの引数で指定できる
+  - ただし、**2の乗数に切り上げる**（理由は後述）
+  - デフォルトコンストラクタの場合、容量は **16**
+
+<hr>
+![table](img/Entry_1.svg)
+  
+---
+# フィールド変数（2）
+
+```java
+int size;
+```
+- 現在、保持しているデータ数
+
+---
+# フィールド変数（3）
+
+```java
+float loadFactor;
+```
+
+- 負荷係数（テーブルを再構築する割合）
+  - コンストラクタの引数で指定できる
+  - デフォルトコンストラクタの場合、**0.75**
+
+```java
+int threshold = (int)(table.length * loadFactor);
+```
+- しきい値
+  - 保持するデータ数がこの値を超過したら、テーブルの容量を2倍にして再構築する
 
 ---
 
@@ -266,12 +340,16 @@ class Entry<K,V> implements Map.Entry<K,V> {
 
 ---
 
-# map.put("Java", "1995") の挙動
+# map.put("Java", 1995)
+
+### "Java" に紐付けて 1995 という値を格納する
+
+<hr>
 
 1. テーブルのどの位置（インデックス）に格納するか決定
-2. すでにキーが格納済みかどうかを確認  
+2. すでに同一のキーが格納済みかどうかを確認  
   3. 格納済みなら、値を上書き  
-  3. 未格納なら、テーブルに格納
+  3. 未格納なら、テーブルにエントリーを格納
 
 ---
 
@@ -317,10 +395,10 @@ static int indexFor(int h, int length) {
 
 # indexFor メソッドの解説
 
-- データ格納するインデックス（今回は 0〜15）を決めたい  
+- データを格納するインデックス<span class="remark">（今回は 0〜15）</span>を決める  
   → `key.hashCode() % table.length` を求める？
   - でも、余りを求める計算( `%` )は遅い
-- そこで、**テーブルサイズを2の倍数とする**
+- そこで、**テーブル容量を必ず2の乗数とする**
   - これなら、余りを求める **= 下位ビットを取得する**だけ
   - つまり、AND でマスクするだけ
 
@@ -336,7 +414,7 @@ static int indexFor(int h, int length) {
 
 - `hashCode()` をそのまま使うだけでもよい
 - でも、オブジェクトによっては**下位ビットがあまり変化しない実装になっていることがある**
-    - Float とか <span class="footnote">（例えば、1.0f と 2.0f で下位ビットが同じ）</span>
+    - Float とか <span class="remark">（例えば、1.0f と 2.0f で下位ビットが同じ）</span>
 - そこで、上位ビットの値を下位ビットに XOR で集める
 
 ```java
@@ -349,16 +427,166 @@ static int hash(int h) {
 
 # hash の計算
 
-```java
-static int hash(int h) {
-  h ^= (h >>> 20) ^ (h >>> 12);
-  return h ^ (h >>> 7) ^ (h >>> 4);
-}
-```
+`"Java".hashCode()` <span class="remark">（= 0x00231E42）
+</span>の場合
+
+<table class="bitmap">
+  <tr>
+    <td>h</td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">1</td><td class="cyan">0</td>
+    <td class="pink">0</td><td class="pink">0</td><td class="pink">1</td><td class="pink">1</td>
+    <td class="pink">0</td><td class="pink">0</td><td class="pink">0</td><td class="pink">1</td>
+    <td>1</td><td>1</td><td>1</td><td>0</td>
+    <td>0</td><td>1</td><td>0</td><td>0</td>
+    <td>0</td><td>0</td><td>1</td><td>0</td>
+  </tr>
+  <tr>
+    <td>h >>> 20</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">1</td><td class="cyan">0</td>
+  </tr>
+  <tr>
+    <td>h >>> 12</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">1</td><td class="cyan">0</td>
+    <td class="pink">0</td><td class="pink">0</td><td class="pink">1</td><td class="pink">1</td>
+    <td class="pink">0</td><td class="pink">0</td><td class="pink">0</td><td class="pink">1</td>
+  </tr>
+  <tr style="border-top: 3px double #555;">
+    <td>XOR</td>
+    <td>0</td><td>0</td><td>0</td><td>0</td>
+    <td>0</td><td>0</td><td>0</td><td>0</td>
+    <td>0</td><td>0</td><td>1</td><td>0</td>
+    <td>0</td><td>0</td><td>1</td><td>1</td>
+    <td>0</td><td>0</td><td>0</td><td>1</td>
+    <td>1</td><td>1</td><td>0</td><td>0</td>
+    <td>0</td><td>1</td><td>1</td><td>1</td>
+    <td>0</td><td>0</td><td>0</td><td>1</td>
+  </tr>
+</table>
+<hr>
+<table class="bitmap">
+  <tr>
+    <td>h</td>
+    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
+    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
+    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td><td class="yellow">0</td>
+    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td><td class="yellow">1</td>
+    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td>
+    <td class="yellow">1</td><td class="yellow">1</td><td class="yellow">0</td><td class="yellow">0</td>
+    <td class="yellow">0</td><td class="green">1</td><td class="green">1</td><td class="green">1</td>
+    <td>0</td><td>0</td><td>0</td><td>1</td>
+  </tr>
+  <tr>
+    <td>h >>> 7</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td class="yellow">0</td>
+    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
+    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
+    <td class="yellow">0</td><td class="yellow">1</td><td class="yellow">0</td><td class="yellow">0</td>
+    <td class="yellow">0</td><td class="yellow">1</td><td class="yellow">1</td><td class="yellow">0</td>
+    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td><td class="yellow">1</td>
+    <td class="yellow">1</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
+  </tr>
+  <tr>
+    <td>h >>> 4</td>
+    <td></td><td></td><td></td><td></td>
+    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
+    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
+    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td><td class="yellow">0</td>
+    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td><td class="yellow">1</td>
+    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td>
+    <td class="yellow">1</td><td class="yellow">1</td><td class="yellow">0</td><td class="yellow">0</td>
+    <td class="yellow">0</td><td class="green">1</td><td class="green">1</td><td class="green">1</td>
+  </tr>
+  <tr style="border-top: 3px double #555;">
+    <td>XOR</td>
+    <td>0</td><td>0</td><td>0</td><td>0</td>
+    <td>0</td><td>0</td><td>0</td><td>0</td>
+    <td>0</td><td>0</td><td>1</td><td>0</td>
+    <td>0</td><td>0</td><td>0</td><td>1</td>
+    <td>0</td><td>1</td><td>1</td><td>0</td>
+    <td>1</td><td>0</td><td>1</td><td>1</td>
+    <td>1</td><td>0</td><td>0</td><td>0</td>
+    <td>1</td><td>1</td><td>1</td><td>0</td>
+  </tr>
+</table>
+
 
 ---
 
-# ちなみに、Java 8 以降の場合
+# データの格納
+
+- 先程の計算により **index = 14 に格納する**
+  - `table[14] == null` （データはまだない）
+- 新たな Entry を作って格納
+
+!["Java"エントリー](img/Entry_2.svg)
+
+---
+
+# map.put("JavaScript", 1995)
+
+### "JavaScript" に紐付けて 1995 という値を格納する
+
+<hr>
+
+1. テーブルのどの位置（インデックス）に格納するか決定  
+  → hash = 1331630014, **index = 14**
+2. すでに同一のキーが格納済みかどうかを確認
+  3. 格納済みなら、値を上書き  
+  3. 未格納なら、テーブルにエントリーを格納
+
+---
+
+# すでに index = 14 にデータがある
+
+!["Java"エントリー](img/Entry_2.svg)
+
+- 同一のキーが格納済み？  
+  → **hash が一致 & キーの equals の結果が TRUE** かどうか
+
+---
+# 未格納なので、エントリーを追加
+
+- table[14] にエントリーを追加
+  - すでに登録されているエントリーは、**next に格納**
+
+<hr>
+!["Java"エントリー](img/Entry_3.svg)
+
+---
+
+# さらにデータを追加していく
+
+```java
+m.put("Kotlin", 2011);
+m.put("Python", 1991);
+m.put("Ruby", 1995);
+m.put("PHP", 1995);
+m.put("Go", 2011);
+m.put("Rust", 2013);
+…
+m.put("C", 1972); // 13個目のデータ
+```
+
+`threshold (=12)` を超えた！
+
+---
+
+# hash メソッドの変更
 
 上位ビット16 ビットを、下位に XOR するだけになった
 
@@ -369,42 +597,44 @@ static int hash(Object key) {
 }
 ```
 
-<table>
-  <tr><!-- 10 0011 0001 1110 0100 0010 -->
-    <td style="border: none"></td>
-    <td style="background-color: aquamarine;">0000</td>
-    <td style="background-color: aquamarine;">0000</td>
-    <td style="background-color: aquamarine;">0010</td>
-    <td style="background-color: aquamarine;">0011</td>
-    <td>0001</td>
-    <td>1110</td>
-    <td>0100</td>
-    <td>0010</td>
+`"Java".hashCode()` <span class="remark">（= 0x00231E42）
+</span>の場合
+
+<table class="bitmap">
+  <tr>
+    <td>h</td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">1</td><td class="cyan">0</td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">1</td><td class="cyan">1</td>
+    <td>0</td><td>0</td><td>0</td><td>1</td>
+    <td>1</td><td>1</td><td>1</td><td>0</td>
+    <td>0</td><td>1</td><td>0</td><td>0</td>
+    <td>0</td><td>0</td><td>1</td><td>0</td>
   </tr>
-  <tr></tr>
-    <td style="border: none">XOR</td>
-    <td>0000</td>
-    <td>0000</td>
-    <td>0000</td>
-    <td>0000</td>
-    <td style="background-color: aquamarine;">0000</td>
-    <td style="background-color: aquamarine;">0000</td>
-    <td style="background-color: aquamarine;">0010</td>
-    <td style="background-color: aquamarine;">0011</td>
+  <tr>
+    <td>h >> 16</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td></td><td></td><td></td><td></td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">1</td><td class="cyan">0</td>
+    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">1</td><td class="cyan">1</td>
   </tr>
-  <tr style="border-top: double 3px black"></tr>
-    <td style="border: none">=</td>
-    <td>0000</td>
-    <td>0000</td>
-    <td>0010</td>
-    <td>0011</td>
-    <td>0001</td>
-    <td>1110</td>
-    <td>0110</td>
-    <td>0001</td>
+  <tr style="border-top: 3px double #555;">
+    <td>XOR</td>
+    <td>0</td><td>0</td><td>0</td><td>0</td>
+    <td>0</td><td>0</td><td>0</td><td>0</td>
+    <td>0</td><td>0</td><td>1</td><td>0</td>
+    <td>0</td><td>0</td><td>1</td><td>1</td>
+    <td>0</td><td>0</td><td>0</td><td>1</td>
+    <td>1</td><td>1</td><td>1</td><td>0</td>
+    <td>0</td><td>1</td><td>1</td><td>0</td>
+    <td>0</td><td>0</td><td>0</td><td>1</td>
   </tr>
 </table>
-
 
 </textarea>
 <script type="text/javascript">
