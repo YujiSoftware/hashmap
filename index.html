@@ -28,6 +28,12 @@
     body { 
       font-family: 'Noto Sans JP", sans-serif';
     }
+    a {
+      color: rgb(0, 0, 238);
+    }
+    .remark-slide-scaler{
+      overflow: hidden;
+    }
     .remark-code {
       border: 5px silver double;
       border-radius: 15px;
@@ -49,7 +55,7 @@
 
     .remark-slide-content {
       font-size: 38px; /* 20px */
-      padding: 0.5em 2em;
+      padding: 0.5em 2em 0em 2em;
     }
     .remark-slide-content > * {
       margin: 0.25em 0;
@@ -125,17 +131,17 @@
     }
 
     table.bitmap tr td.cyan {
-      background-color: lightcyan;
+      background-color: paleturquoise;
     }
-
     table.bitmap tr td.pink {
       background-color: pink;
     }
-
     table.bitmap tr td.yellow {
-      background-color: lemonchiffon;
+      background-color: khaki;
     }
-
+    table.bitmap tr td.orange {
+      background-color: orange ;
+    }
     table.bitmap tr td.green {
       background-color: palegreen;
     }
@@ -147,8 +153,8 @@
 
     div.note {
       position: relative;
-      padding: 0.1em 0.5em;    
-      color: #066e15;
+      padding: 0.1em 0.5em;
+      border: 3px solid #22ac38;
       border-radius: 0 10px 10px 10px;
       background: #e3f5d8;
       margin-top: 72px;
@@ -156,8 +162,8 @@
     }
     div.note > p:first-child {
       position: absolute;
-      top: -85px;
-      left: 0;
+      top: -88px;
+      left: -3px;
       height: 54px;
       padding: 0 1em;
       color: #fff;
@@ -212,13 +218,16 @@ class: center, middle
 
 - HashMap について
 - HashMap の実装を理解しよう！
-    - new
-    - put
-    - get
 - Java のバージョンごとの実装の違い
 - 効率良く使うためのコツ
 
-本日の資料： https://yuji.software/hashmap/
+<br>
+.note[
+資料のURL
+
+https://yuji.software/hashmap/
+]
+
 
 ---
 
@@ -232,6 +241,7 @@ class: center, middle
 ## Hash とは
 
 - b
+
 ---
 
 class: center, middle
@@ -249,8 +259,7 @@ class: center, middle
       - 最新の実装は、最適化によって複雑になっている
       （Java 6 … 512行 / Java 24 … 1704行）
   - 本質的なアルゴリズムは同じ
-
-【 最新との違いは、最後に説明します 】
+- 最新との違いは、最後に説明します
 
 ---
 
@@ -259,15 +268,16 @@ class: center, middle
 「プログラミング言語」と「リリース年」のペアを格納
 
 ```java
-Map<String, Integer> m = 
+Map<String, Integer> map = 
         new HashMap<String, Integer>();
+map.put("Java", 1995);        // 1個目のデータ
+map.put("JavaScript", 1995);  // 2個目のデータ
 
-m.put("Java", 1995);
-m.put("JavaScript", 1995);
-m.put("Kotlin", 2011);
+System.out.println(map.get("Java")); // 取得して表示
+
+m.put("C#", 2002);  // 3個目のデータ
 … 中略 …
-
-System.out.println(m.get("Java"));
+m.put("C", 1972);   // 13個目のデータ
 ```
 
 ---
@@ -286,7 +296,7 @@ int threshold;
 
 ---
 
-# フィールド変数（1）
+# フィールド変数（テーブル）
 
 ```java
 Entry[] table;
@@ -294,14 +304,25 @@ Entry[] table;
 
 - データを保持する配列
 - 容量<span class="remark">（配列サイズ）</span>は、コンストラクタの引数で指定できる
-  - ただし、**2の乗数に切り上げる**（理由は後述）
+  - ただし、**2の乗数に切り上げる**<span class="remark">（理由は後述）</span>
   - デフォルトコンストラクタの場合、容量は **16**
 
 <hr>
 ![table](img/Entry_1.svg)
   
 ---
-# フィールド変数（2）
+
+# フィールド変数（テーブル）
+
+- Entry<span class="remark">（配列の要素）</span>は、`key` / `value` / `hash` / `next` の4つのフィールド変数を持つ
+
+<hr>
+
+![table](img/Entry_4.svg)
+
+---
+
+# フィールド変数（サイズ）
 
 ```java
 int size;
@@ -309,7 +330,7 @@ int size;
 - 現在、保持しているデータ数
 
 ---
-# フィールド変数（3）
+# フィールド変数（負荷係数としきい値）
 
 ```java
 float loadFactor;
@@ -327,29 +348,19 @@ int threshold = (int)(table.length * loadFactor);
 
 ---
 
-# Entry の構造
-
-```java
-class Entry<K,V> implements Map.Entry<K,V> {
-    K key;
-    V value;
-    int hash;
-    Entry<K,V> next;
-}
-```
-
----
-
 # map.put("Java", 1995)
 
 ### "Java" に紐付けて 1995 という値を格納する
 
 <hr>
 
-1. テーブルのどの位置（インデックス）に格納するか決定
-2. すでに同一のキーが格納済みかどうかを確認  
-  3. 格納済みなら、値を上書き  
-  3. 未格納なら、テーブルにエントリーを格納
+1. テーブルのどの位置<span class="remark">（インデックス）</span>に格納するか決める
+  1. ハッシュコードを取得
+  2. ハッシュを計算
+  3. インデックスを計算
+2. 同一のキーが格納済み？   
+  3. 格納済み → 値を上書き  
+  3. 未格納 → エントリーを作成してテーブルに格納
 
 ---
 
@@ -357,7 +368,7 @@ class Entry<K,V> implements Map.Entry<K,V> {
 
 1. ハッシュコードを取得
 2. ハッシュを計算（hash メソッド）
-3. 格納位置（インデックス）を決定（indexFor メソッド）
+3. 格納位置<span class="remark">（インデックス）</span>を決定（indexFor メソッド）
 
 ```java
 int x = "Java".hashCode();
@@ -397,7 +408,7 @@ static int indexFor(int h, int length) {
 
 - データを格納するインデックス<span class="remark">（今回は 0〜15）</span>を決める  
   → `key.hashCode() % table.length` を求める？
-  - でも、余りを求める計算( `%` )は遅い
+  - でも、割り算（余りを求める計算）は遅い
 - そこで、**テーブル容量を必ず2の乗数とする**
   - これなら、余りを求める **= 下位ビットを取得する**だけ
   - つまり、AND でマスクするだけ
@@ -412,10 +423,9 @@ static int indexFor(int h, int length) {
 
 # hash メソッドの解説
 
-- `hashCode()` をそのまま使うだけでもよい
-- でも、オブジェクトによっては**下位ビットがあまり変化しない実装になっていることがある**
+- オブジェクトによっては `hashCode()` の**下位ビットがあまり変化しない実装になっていることがある**
     - Float とか <span class="remark">（例えば、1.0f と 2.0f で下位ビットが同じ）</span>
-- そこで、上位ビットの値を下位ビットに XOR で集める
+- そこで、`hashCode()` の**上位ビットの値を下位ビットに XOR で集めた値**を hash とする
 
 ```java
 static int hash(int h) {
@@ -436,8 +446,8 @@ static int hash(int h) {
     <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
     <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
     <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">1</td><td class="cyan">0</td>
-    <td class="pink">0</td><td class="pink">0</td><td class="pink">1</td><td class="pink">1</td>
-    <td class="pink">0</td><td class="pink">0</td><td class="pink">0</td><td class="pink">1</td>
+    <td class="green">0</td><td class="green">0</td><td class="green">1</td><td class="green">1</td>
+    <td class="green">0</td><td class="green">0</td><td class="green">0</td><td class="green">1</td>
     <td>1</td><td>1</td><td>1</td><td>0</td>
     <td>0</td><td>1</td><td>0</td><td>0</td>
     <td>0</td><td>0</td><td>1</td><td>0</td>
@@ -461,8 +471,8 @@ static int hash(int h) {
     <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
     <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
     <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">1</td><td class="cyan">0</td>
-    <td class="pink">0</td><td class="pink">0</td><td class="pink">1</td><td class="pink">1</td>
-    <td class="pink">0</td><td class="pink">0</td><td class="pink">0</td><td class="pink">1</td>
+    <td class="green">0</td><td class="green">0</td><td class="green">1</td><td class="green">1</td>
+    <td class="green">0</td><td class="green">0</td><td class="green">0</td><td class="green">1</td>
   </tr>
   <tr style="border-top: 3px double #555;">
     <td>XOR</td>
@@ -479,14 +489,14 @@ static int hash(int h) {
 <hr>
 <table class="bitmap">
   <tr>
-    <td>h</td>
+    <td><span style="display: inline-block; transform: scaleX(-1.5);">↵</span></td>
     <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
     <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
     <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td><td class="yellow">0</td>
     <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td><td class="yellow">1</td>
     <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td>
     <td class="yellow">1</td><td class="yellow">1</td><td class="yellow">0</td><td class="yellow">0</td>
-    <td class="yellow">0</td><td class="green">1</td><td class="green">1</td><td class="green">1</td>
+    <td class="yellow">0</td><td class="orange">1</td><td class="orange">1</td><td class="orange">1</td>
     <td>0</td><td>0</td><td>0</td><td>1</td>
   </tr>
   <tr>
@@ -509,7 +519,7 @@ static int hash(int h) {
     <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td><td class="yellow">1</td>
     <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td>
     <td class="yellow">1</td><td class="yellow">1</td><td class="yellow">0</td><td class="yellow">0</td>
-    <td class="yellow">0</td><td class="green">1</td><td class="green">1</td><td class="green">1</td>
+    <td class="yellow">0</td><td class="orange">1</td><td class="orange">1</td><td class="orange">1</td>
   </tr>
   <tr style="border-top: 3px double #555;">
     <td>XOR</td>
@@ -520,18 +530,17 @@ static int hash(int h) {
     <td>0</td><td>1</td><td>1</td><td>0</td>
     <td>1</td><td>0</td><td>1</td><td>1</td>
     <td>1</td><td>0</td><td>0</td><td>0</td>
-    <td>1</td><td>1</td><td>1</td><td>0</td>
+    <td class="pink">1</td><td class="pink">1</td><td class="pink">1</td><td class="pink">0</td>
   </tr>
 </table>
 
 
 ---
 
-# データの格納
+# データを格納
 
 - 先程の計算により **index = 14 に格納する**
-  - `table[14] == null` （データはまだない）
-- 新たな Entry を作って格納
+  - table[14] == null なので、新しく Entry を作って格納
 
 !["Java"エントリー](img/Entry_2.svg)
 
@@ -543,41 +552,70 @@ static int hash(int h) {
 
 <hr>
 
-1. テーブルのどの位置（インデックス）に格納するか決定  
-  → hash = 1331630014, **index = 14**
-2. すでに同一のキーが格納済みかどうかを確認
-  3. 格納済みなら、値を上書き  
-  3. 未格納なら、テーブルにエントリーを格納
+1. テーブルのどの位置<span class="remark">（インデックス）</span>に格納するか決める 
+  1. ハッシュコードを取得（= 1266327981）
+  1. ハッシュを計算 （**= 1331630014**）
+  2. インデックスを計算（**= 14**）
+2. 同一のキーが格納済み？
+  3. 格納済み → 値を上書き  
+  3. 未格納 → エントリーを作成してテーブルに格納
 
 ---
 
 # すでに index = 14 にデータがある
 
-!["Java"エントリー](img/Entry_2.svg)
+!["Java"エントリー](img/Entry_2_1.svg)
 
 - 同一のキーが格納済み？  
-  → **hash が一致 & キーの equals の結果が TRUE** かどうか
+  → **hash が一致 & キーの equals の結果が true** かどうか
 
 ---
 # 未格納なので、エントリーを追加
 
-- table[14] にエントリーを追加
-  - すでに登録されているエントリーは、**next に格納**
+- エントリーを作成して `table[14]` に追加
+  - すでに登録されているエントリーは、**`next` に格納**
 
 <hr>
 !["Java"エントリー](img/Entry_3.svg)
 
 ---
 
+# map.get("Java")
+
+### "Java" に紐付いた値を取得する
+
+<hr>
+
+1. テーブルのどの位置<span class="remark">（インデックス）</span>に格納されているか
+  1. ハッシュコードを取得（= 2301506）
+  2. ハッシュを計算（**= 2190222**）
+  3. インデックスを計算（**= 14**）
+2. 同一のキーが格納済み？   
+  3. 格納済み → その値を返す
+  3. 未格納 → null を返す
+
+---
+
+# キーに紐づく値を取得
+
+- **hash が一致 & キーの equals の結果が true** かどうか  
+  - `table[14]` を起点に Entry を順にたどって比較
+
+<hr>
+!["Java"エントリー](img/Entry_3_1.svg)
+
+---
+
 # さらにデータを追加していく
 
 ```java
+m.put("C#", 2002);
+m.put("Scala", 2004);
 m.put("Kotlin", 2011);
 m.put("Python", 1991);
 m.put("Ruby", 1995);
 m.put("PHP", 1995);
 m.put("Go", 2011);
-m.put("Rust", 2013);
 …
 m.put("C", 1972); // 13個目のデータ
 ```
@@ -586,7 +624,34 @@ m.put("C", 1972); // 13個目のデータ
 
 ---
 
-# hash メソッドの変更
+# rehash 処理
+
+1. **2倍**の容量のテーブル<span class="remark">（Entry配列）</span>を作成
+2. データを配置し直す
+
+---
+
+class: center, middle
+
+# Java のバージョンごとの実装の違い
+
+---
+
+# 遅延初期化（Java 7 Update 40 〜）
+
+- https://bugs.openjdk.org/browse/JDK-8011200
+
+---
+
+# TreeMap への切り替え (Java 8 〜)
+
+- [JEP 180: Handle Frequent HashMap Collisions with Balanced Trees](https://openjdk.org/jeps/180)
+- キーに Comparable が実装されている
+- エントリー内にデータが8つ以上格納された
+
+---
+
+# hash メソッドの変更 (Java 8 〜)
 
 上位ビット16 ビットを、下位に XOR するだけになった
 
@@ -635,6 +700,94 @@ static int hash(Object key) {
     <td>0</td><td>0</td><td>0</td><td>1</td>
   </tr>
 </table>
+
+---
+
+class: center, middle
+
+# 効率良く使うためのコツ
+
+---
+
+# 十分な容量を指定する
+
+- 13個以上格納するなら、**個数に応じた容量を指定する**
+  - rehash が減らせるため
+  - 指定する値は、負荷係数<span class="remark">（loadFactor）</span>の考慮が必要
+
+```java
+// 最低21個のデータを格納する場合、
+// 21 * (1 / 0.75) = 28 を指定する
+Map<String, Integer> map = new HashMap<>(28);
+
+// Java19以降なら、格納個数を指定するメソッドが使える
+Map<String, Integer> map = HashMap.newHashMap(21);
+```
+
+---
+
+# hashCode() の実装を工夫する
+
+- 自作のオブジェクトをキーに使用する場合、よく考慮して `hashCode()`を実装する
+  - できるだけ値が重複しないようにする
+  - **倍数にならないようにする**<span class="remark">（良くない例：必ず偶数になる）</span>
+
+## 簡単な実装方法
+  - `Objects.hash(Object... values)` を使用する
+  - [Lombok](https://projectlombok.org/) を使用する
+  - Record クラスを使用する<span class="remark">（Java16 以降）</span>
+
+---
+
+# Comparable インタフェースを実装する
+
+
+
+---
+
+class: center, middle
+
+# 補足資料
+
+---
+
+# 割り算はどのぐらい遅いのか？
+
+- Pentium 4 の場合
+   - [IA-32 命令のレイテンシとスループット](https://www.intel.co.jp/content/dam/www/public/ijkk/jp/ja/documents/developer/ia32.pdf)より
+
+|命令|概要|レイテンシ|
+|--|--|--|
+|ADD|足し算|0.5|
+|SUB|引き算|0.5|
+|IMUL|掛け算|15〜18|
+|IDIV|割り算|56〜70|
+
+- 割り算は、**足し算より11倍、掛け算より4倍遅い**
+
+---
+
+# 一箇所に何個のデータが格納されるか
+
+- 実装メモによると、`hashCode()` の値が理想的（= ランダム値）な場合、テーブルの一つのインデックスにいくつ値が格納されるかはポアソン分布に従うとのこと
+
+<div class="flex">
+<ul>
+<li>0個: 60.653066%</li>
+<li>1個: 30.326533%</li>
+<li>2個: 7.581633%</li>
+<li>3個: 1.263606%</li>
+<li>4個: 0.157952%</li>
+</ul>
+<ul>
+<li>5個: 0.015795%</li>
+<li>6個: 0.001316%</li>
+<li>7個: 0.000094%</li>
+<li>8個: 0.000006%</li>
+<li>それ以上: 1,000万分の1未満</li>
+</ul>
+</div>
+
 
 </textarea>
 <script type="text/javascript">
