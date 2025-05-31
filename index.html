@@ -113,6 +113,7 @@
 
     table.bitmap tr td {
       border: 1px solid #555;
+      line-height: 1.3
     }
 
     table.bitmap tr td:nth-child(1) {
@@ -276,7 +277,6 @@ Map<String, Integer> map =
 map.put("Java", 1995);       // 1個目のデータ
 map.put("JavaScript", 1995); // 2個目のデータ
 … 中略 …
-map.put("Perl", 1987);       // 12個目のデータ
 
 System.out.println(map.get("Java")); // 取得して表示
 
@@ -306,24 +306,24 @@ Entry[] table;
 ```
 
 - データを保持する配列
-  - 配列の各要素のことを**ビン**と呼ぶ
+  - 配列の各要素のことを** Bin **と呼ぶ
 - 容量<span class="remark">（配列サイズ）</span>は、コンストラクタの引数で指定できる
   - ただし、**2の乗数に切り上げる**<span class="remark">（理由は後述）</span>
   - デフォルトコンストラクタの場合、容量は **16**
 
 <hr>
-![table](img/Entry_1.svg)
+![table](img/entry_1.svg)
   
 ---
 
 # フィールド変数（テーブル）
 
-- それぞれのビンは、エントリーまたは null を保持する
- - エントリーは、`key` / `value` / `hash` / `next` を保持する
+- それぞれの Bin は、 Entry  または null を保持する
+ -  Entry  は、`key` / `value` / `hash` / `next` を保持する
 
 <hr>
 
-![table](img/Entry_4.svg)
+![table](img/entry_4.svg)
 
 ---
 
@@ -341,39 +341,39 @@ int size;
 float loadFactor;
 ```
 
-- 負荷係数（テーブルを再構築する割合）
+- <span class="underline">負荷係数</span>（テーブルを再構築する割合）
   - コンストラクタの引数で指定できる
   - デフォルトコンストラクタの場合、**0.75**
 
 ```java
 int threshold = (int)(table.length * loadFactor);
 ```
-- しきい値
+- <span class="underline">しきい値</span>
   - データ数がこの値を超過したら再構築する（後述）
 
 ---
 
-# "Java" に紐付けて 1995 を格納
+# データを追加
 
 ```java
 map.put("Java", 1995)
 ```
 
-1. **どのビンに格納するか**決める
-  1. ハッシュコードを取得
-  2. ハッシュを計算
-  3. 格納するビンを決定
-2. すでに同一のキーが格納済み？   
+1. **どの Bin に格納するか**決める
+  1. `key.hashCode()`  で値を取得
+  2. hash を計算
+  3. 格納する Bin を決定
+2. すでに同一の key が格納済み？   
   3. 格納済み → 値を上書き  
-  3. 未格納 → エントリーを作成して格納
+  3. 未格納 →  Entry  を作成して格納
 
 ---
 
-# どのビンに格納するか
+# どの Bin に格納するか
 
-1. ハッシュコードを取得
-2. ハッシュを計算（hash メソッド）
-3. 格納するビン<span class="remark">（インデックス）</span>を決定（indexFor メソッド）
+1. `key.hashCode()`  で値を取得
+2. hash を計算（hash メソッド）
+3. 格納する Bin を決定（indexFor メソッド）
 
 ```java
 int x = "Java".hashCode();
@@ -391,7 +391,7 @@ int i = indexFor(hash);
 
 # indexFor メソッドの解説
 
-- どのビンに格納するか決める<span class="remark">（今回は 0〜15 のいずれかのビン）</span>  
+- どの Bin に格納するか決める<span class="remark">（今回は 0〜15 のいずれか）</span>  
   → `key.hashCode() % table.length` を求める？
   - でも、割り算（余りを求める計算）は遅い
 - そこで、**テーブル容量を必ず2の乗数とする**
@@ -517,6 +517,9 @@ static int hash(int h) {
     <td>1</td><td>0</td><td>0</td><td>0</td>
     <td class="pink">1</td><td class="pink">1</td><td class="pink">1</td><td class="pink">0</td>
   </tr>
+  <tr>
+    <td colspan="33" style="border: none; text-align: end; line-height: 2">この値を使う↑</td>
+  </tr>
 </table>
 
 
@@ -527,41 +530,46 @@ static int hash(int h) {
 - 先程の計算により**14番目の Bin に格納する**
   - null なので、新しく Entry を作って格納
 
-![Javaエントリー](img/Entry_2.svg)
+![Java Entry  ](img/entry_2.svg)
 
 ---
 
-# "JavaScript" に紐付けて 1995 を格納
+# もうひとつデータを追加
 
 ```java
 map.put("JavaScript", 1995)
 ```
 
-1. **どのビンに格納するか**決める 
-  1. ハッシュコードを取得（= 1266327981）
-  1. ハッシュを計算 （**= 1331630014**）
-  2. 格納するビンを決定（**= 14**）
-2. すでに同一のキーが格納済み？
+1. **どの Bin に格納するか**決める 
+  1. `key.hashCode()`  で値を取得（= 1266327981）
+  1. hash を計算 （**= 1331630014**）
+  2. 格納する Bin を決定（**= 14**）
+2. すでに同一の key が格納済み？
   3. 格納済み → 値を上書き  
-  3. 未格納 → エントリーを作成して格納
+  3. 未格納 →  Entry  を作成して格納
 
 ---
 
-# すでに14番目のビンにデータがある
+# すでに14番目の Bin にデータがある
 
-![Javaエントリー](img/Entry_2_1.svg)
+![Java Entry  ](img/entry_2_1.svg)
 
-- 同一のキーが格納済み？  
-  → **hash が一致** かつ **key が一致**しているかどうか
+<p style="margin-top: -1.8em;">
+同一の key が格納済み？<br>→ <strong>hash が一致</strong> かつ <strong>key が一致</strong>しているかどうか
+</p>
+
+```java
+hash == entry.hash && key.equals(entry.key)
+```
 
 ---
-# 未格納なので、エントリーを追加
+# 未格納なので、 Entry  を追加
 
-- 新しくエントリーを作成して、14番目のビンに格納
-  - すでに登録されているエントリーは、**`next` に格納**
+- 新しく Entry  を作成して、14番目の Bin に格納
+  - すでに登録されている Entry  は、**next に格納**
 
 <hr>
-![Javaエントリー](img/Entry_3.svg)
+![Java Entry  ](img/entry_3.svg)
 
 ---
 
@@ -582,29 +590,29 @@ m.put("Perl", 1987);     // 12個目のデータ
 
 ---
 
-# "Java" に紐付いた値を取得する
+# データを取得する
 
 ```java
 map.get("Java")
 ```
 
-1. どのビンに格納されているか
-  1. ハッシュコードを取得（= 2301506）
-  2. ハッシュを計算（**= 2190222**）
-  3. 格納するビンを決定（**= 14**）
-2. **すでに同一のキーが格納済み？**
+1. どの Bin に格納されているか
+  1. `key.hashCode()`  で値を取得（= 2301506）
+  2. hash を計算（**= 2190222**）
+  3. 格納する Bin を決定（**= 14**）
+2. **すでに同一の key が格納済み？**
   3. 格納済み → その値を返す
   3. 未格納 → null を返す
 
 ---
 
-# キーに紐づく値を取得
+#  key に紐づく値を取得
 
 - 14番目の Bin を起点に Entry をたどる
   - **hash が一致** かつ **key が一致**する → **その value を返す**
 
 <hr>
-!["Java"エントリー](img/Entry_3_1.svg)
+!["Java" Entry  ](img/entry_3_1.svg)
 
 ---
 
@@ -614,9 +622,8 @@ map.get("Java")
 m.put("C", 1972); // 13個目のデータ
 ```
 
-<br>
-`threshold (=12)` を超えた  
-→ テーブルの再構築を行う
+* `threshold (=12)` を超えた   
+→ **テーブルの再構築を行う**
 
 ---
 
@@ -624,12 +631,12 @@ m.put("C", 1972); // 13個目のデータ
 
 
 1. **2倍**の容量のテーブル<span class="remark">（Entry配列）</span>を作成
-2. インデックスを再計算し、新テーブルにエントリーを格納
-  * ビンが2分割される
+2. インデックスを再計算し、新テーブルに Entry  を格納
+  *  Bin が2分割される
 
 <hr>
 
-![Javaエントリー](img/entry_rehash.svg)
+![HashMap の rehash](img/entry_rehash.svg)
 
 ---
 
@@ -658,7 +665,7 @@ Map<String, Integer> map = HashMap.newHashMap(32);
 
 # hashCode() の実装を工夫する
 
-- 自作のオブジェクトをキーに使用する場合、よく考慮して `hashCode()`を実装する
+- 自作のオブジェクトを key に使用する場合、よく考慮して `hashCode()`を実装する
   - できるだけ値が重複しないようにする
   - **倍数にならないようにする**<span class="remark">（良くない例：必ず偶数になる）</span>
 
