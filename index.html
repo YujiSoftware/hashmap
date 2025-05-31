@@ -237,15 +237,13 @@ https://yuji.software/hashmap/
 
 # HashMap って何？
 
-
-## Map とは
-
-- a
-
-## Hash とは
-
-- b
-
+- <span class="underline">Map インタフェース</span>の**最もよく使われる実装**  
+  ↑ Key から Value を高速に取得するためのもの
+- 特徴
+  - **高速**（理想的には、計算量が *O(1)*）
+  - 順序の保証がない
+  - Key は一意
+      - 重複した Key を格納しようとすると、上書きになる
 ---
 
 # 参考にするバージョン
@@ -254,7 +252,7 @@ https://yuji.software/hashmap/
     - 2006年12月11日リリース
 - このバージョンの理由
   - **シンプルでわかりやすいから**
-      - 最新の実装は、最適化によって複雑になっている
+      - これ以降の実装は、最適化によって複雑になっている
       （Java 6 … 512行 / Java 24 … 1704行）
   - 本質的なアルゴリズムは同じ
 - 最新との違いは、最後に説明します
@@ -530,7 +528,7 @@ static int hash(int h) {
 - 先程の計算により**14番目の Bin に格納する**
   - null なので、新しく Entry を作って格納
 
-![Java Entry  ](img/entry_2.svg)
+![HashMap#put](img/entry_2.svg)
 
 ---
 
@@ -552,7 +550,7 @@ map.put("JavaScript", 1995)
 
 # すでに14番目の Bin にデータがある
 
-![Java Entry  ](img/entry_2_1.svg)
+![HashMap#put](img/entry_2_1.svg)
 
 <p style="margin-top: -1.8em;">
 同一の key が格納済み？<br>→ <strong>hash が一致</strong> かつ <strong>key が一致</strong>しているかどうか
@@ -569,7 +567,7 @@ hash == entry.hash && key.equals(entry.key)
   - すでに登録されている Entry  は、**next に格納**
 
 <hr>
-![Java Entry  ](img/entry_3.svg)
+![HashMap#put](img/entry_3.svg)
 
 ---
 
@@ -612,7 +610,7 @@ map.get("Java")
   - **hash が一致** かつ **key が一致**する → **その value を返す**
 
 <hr>
-!["Java" Entry  ](img/entry_3_1.svg)
+![HashMap#get](img/entry_3_1.svg)
 
 ---
 
@@ -648,7 +646,7 @@ class: center, middle
 
 # 十分な容量を指定する
 
-- 13個以上格納するなら、**個数に応じた容量を指定する**
+- 13個以上格納するなら、**容量を指定する**
   - rehash が減らせるため
   - 指定する値は、負荷係数<span class="remark">（loadFactor）</span>の考慮が必要
 
@@ -663,11 +661,11 @@ Map<String, Integer> map = HashMap.newHashMap(32);
 
 ---
 
-# hashCode() の実装を工夫する
+# hashCode() の実装を気をつける
 
 - 自作のオブジェクトを key に使用する場合、よく考慮して `hashCode()`を実装する
   - できるだけ値が重複しないようにする
-  - **倍数にならないようにする**<span class="remark">（良くない例：必ず偶数になる）</span>
+  - **周期性がないようにする**<span class="remark">（良くない例：必ず偶数になる）</span>
 
 ## 簡単な実装方法
   - `Objects.hash(Object... values)` を使用する
@@ -686,7 +684,8 @@ class: center, middle
 
 [JDK-8011200: Optimize empty ArrayList and HashMap](https://bugs.openjdk.org/browse/JDK-8011200)
 
-
+- HashMap のコンストラクタで、テーブル（配列）の作成を行わなくなった
+  - **最初にデータを追加する**際に、テーブルを作成する
 
 ---
 
@@ -762,6 +761,13 @@ static int hash(Object key) {
 
 # まとめ
 
+- HashMap は、テーブル（配列）にデータを格納している
+- 適切にハッシュが分散していれば、高速にデータを出し入れできる
+   - そのために、key の hashCode() メソッドの実装が大事
+- 必要に応じて、最適な初期容量を指定しましょう
+
+<br>
+- **ぜひソースコードを読んでみましょう！**
 
 ---
 
@@ -802,7 +808,7 @@ class: center, middle
 # Bin には何個の Entry が格納されるか
 
 - 実装メモより<span class="remark">（要約）</span>
-  - `hashCode()` の値が理想的（= ランダム値）な場合、ひとつの Bin に格納される Entry の数は**ポアソン分布に従う**とのこと
+  - `hashCode()` の値が理想的（= ランダム値）場合、テーブル容量と同じ数のデータを入れた際にひとつの Bin に格納される Entry の数は**ポアソン分布に従う**とのこと
 
 <div class="flex">
 <ul>

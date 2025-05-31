@@ -13,8 +13,9 @@ public class Main {
         m.put("Rust", 2013);
         m.put("Fortran", 1956);
         m.put("Perl", 1987);
-        m.put("C", 1972);
 
         System.out.println(m.get("Java"));
+
+        m.put("C", 1972);
     }
 }
