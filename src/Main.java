@@ -1,21 +1,24 @@
+import java.util.HashMap;
+import java.util.Map;
+
 public class Main {
     public static void main(String[] args) {
-        HashMap<String, Integer> m = new HashMap<String, Integer>();
-        m.put("Java", 1995);
-        m.put("JavaScript", 1995);
-        m.put("C#", 2002);
-        m.put("Scala", 2004);
-        m.put("Kotlin", 2011);
-        m.put("Python", 1991);
-        m.put("Ruby", 1995);
-        m.put("PHP", 1995);
-        m.put("Go", 2011);
-        m.put("Rust", 2013);
-        m.put("Fortran", 1956);
-        m.put("Perl", 1987);
+        var map = new HashMap<String, Integer>();
+        map.put("Java", 1995);
+        map.put("Basic", 1964);
+        map.put("Go", 2011);
+        map.put("C#", 2000);
+        map.put("Smalltalk", 1980);
+        map.put("Kotlin", 2011);
+        map.put("Python", 1991);
+        map.put("Ruby", 1995);
+        map.put("PHP", 1995);
+        map.put("Rust", 2013);
+        map.put("Fortran", 1956);
+        map.put("Perl", 1987);
 
-        System.out.println(m.get("Java"));
+        System.out.println(map.get("Java"));
 
-        m.put("C", 1972);
+        map.put("C", 1972);
     }
 }

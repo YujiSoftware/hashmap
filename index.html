@@ -229,10 +229,10 @@ class: center, middle
 
 - HashMap について
 - HashMap の実装を理解しよう！
-- 効率良く使うためのコツ
-- Java のバージョンごとの実装の違い
+  - データ構造
+  - 各メソッドの挙動
+  - 効率良く使うためのコツ
 
-<br>
 .note[
 資料のURL
 
@@ -245,26 +245,13 @@ https://yuji.software/hashmap/
 # HashMap って何？
 
 - <span class="underline">Map インタフェース</span>の**最もよく使われる実装**  
-  ↑ Key から Value を高速に取得するためのもの
+  ↑ Key から Value を取得するためのもの
 - 特徴
-  - **高速**（理想的には、計算量が *O(1)*）
-  - 順序の保証がない
+  - **高速**
+      - 理想的には、計算量が *O(1)*
   - Key は一意
       - 重複した Key を格納しようとすると、上書きになる
-- 他の言語でも、だいたい Map は HashMap で実装されている
-
----
-
-# 参考にするバージョン
-
-- **Java 6**
-    - 2006年12月11日リリース
-- このバージョンの理由
-  - **シンプルでわかりやすいから**
-      - これ以降の実装は、最適化によって複雑になっている
-      （Java 6 … 512行 / Java 24 … 1704行）
-  - 本質的なアルゴリズムは同じ
-- 最新との違いは、最後に説明します
+  - 順序の保証はない
 
 ---
 
@@ -279,26 +266,24 @@ class: center, middle
 「プログラミング言語」と「リリース年」のペアを格納
 
 ```java
-Map<String, Integer> map = 
-        new HashMap<String, Integer>();
+var map = new HashMap<String, Integer>();
 map.put("Java", 1995);       // 1個目のデータ
 map.put("JavaScript", 1995); // 2個目のデータ
 … 中略 …
 
 System.out.println(map.get("Java")); // 取得して表示
 
-m.put("C", 1972);            // 13個目のデータ
+map.put("C", 1972);            // 13個目のデータ
 ```
 
 ---
 
-# new HashMap&amp;lt;String, String&amp;gt;()
+# HashMap の中身
 
-- コンストラクタで、フィールド変数の初期化が行われる
-- 主なフィールド変数は**4つ**（詳細は次ページ）
+- 主なフィールド変数を**4つ**持っている（詳細は次ページ）
 
 ```java
-Entry[] table;
+Node[] table;
 int size;
 float loadFactor;
 int threshold;
@@ -309,7 +294,7 @@ int threshold;
 # フィールド変数（テーブル）
 
 ```java
-Entry[] table;
+Node[] table;
 ```
 
 - データを保持する配列
@@ -325,8 +310,8 @@ Entry[] table;
 
 # フィールド変数（テーブル）
 
-- それぞれの Bin は、 Entry  または null を保持する
- -  Entry  は、`key` / `value` / `hash` / `next` を保持する
+- それぞれの Bin は、 Node  または null を保持する
+ -  Node  は、`key` / `value` / `hash` / `next` を保持する
 
 <hr>
 
@@ -370,25 +355,24 @@ map.put("Java", 1995)
   1. `key.hashCode()`  で値を取得
   2. hash を計算
   3. 格納する Bin を決定
-2. すでに同一の key が格納済み？   
+2. **すでに同一の key が格納済みか**判定する
   3. 格納済み → 値を上書き  
-  3. 未格納 →  Entry  を作成して格納
+  3. 未格納 →  Node  を作成して格納
 
 ---
 
 # どの Bin に格納するか
 
-1. `key.hashCode()`  で値を取得
-2. hash を計算（hash メソッド）
-3. 格納する Bin を決定（indexFor メソッド）
-
 ```java
-int x = "Java".hashCode();
+// 1. key（今回は "Java"）の hashCode を取得
+int x = key.hashCode();
 //  ↑ 2301506
 
+// 2. hash を計算
 int hash = hash(x);
-//  ↑ 2190222
+//  ↑ 2301537
 
+// 3. 格納する Bin を決定
 int i = indexFor(hash);
 //  ↑ 14
 
@@ -415,320 +399,25 @@ static int indexFor(int h, int length) {
 
 # hash メソッドの解説
 
-- オブジェクトによっては `hashCode()` の**下位ビットがあまり変化しない実装になっていることがある**
+- オブジェクトによっては `hashCode()` の下位ビットがあまり変化しない実装になっていることがある
     - Float とか <span class="remark">（例えば、1.0f と 2.0f で下位ビットが同じ）</span>
 - そこで、`hashCode()` の**上位ビットの値を下位ビットに XOR で集めた値**を hash とする
+- ただし、**key が null の場合は 0 とする**
 
-```java
-static int hash(int h) {
-  h ^= (h >>> 20) ^ (h >>> 12);
-  return h ^ (h >>> 7) ^ (h >>> 4);
-}
-```
 ---
 
 # hash の計算
 
-`"Java".hashCode()` <span class="remark">（= 0x00231E42）
-</span>の場合
-
-<table class="bitmap">
-  <tr>
-    <td>h</td>
-    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
-    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
-    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">1</td><td class="cyan">0</td>
-    <td class="green">0</td><td class="green">0</td><td class="green">1</td><td class="green">1</td>
-    <td class="green">0</td><td class="green">0</td><td class="green">0</td><td class="green">1</td>
-    <td>1</td><td>1</td><td>1</td><td>0</td>
-    <td>0</td><td>1</td><td>0</td><td>0</td>
-    <td>0</td><td>0</td><td>1</td><td>0</td>
-  </tr>
-  <tr>
-    <td>h >>> 20</td>
-    <td></td><td></td><td></td><td></td>
-    <td></td><td></td><td></td><td></td>
-    <td></td><td></td><td></td><td></td>
-    <td></td><td></td><td></td><td></td>
-    <td></td><td></td><td></td><td></td>
-    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
-    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
-    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">1</td><td class="cyan">0</td>
-  </tr>
-  <tr>
-    <td>h >>> 12</td>
-    <td></td><td></td><td></td><td></td>
-    <td></td><td></td><td></td><td></td>
-    <td></td><td></td><td></td><td></td>
-    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
-    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td><td class="cyan">0</td>
-    <td class="cyan">0</td><td class="cyan">0</td><td class="cyan">1</td><td class="cyan">0</td>
-    <td class="green">0</td><td class="green">0</td><td class="green">1</td><td class="green">1</td>
-    <td class="green">0</td><td class="green">0</td><td class="green">0</td><td class="green">1</td>
-  </tr>
-  <tr style="border-top: 3px double #555;">
-    <td>XOR</td>
-    <td>0</td><td>0</td><td>0</td><td>0</td>
-    <td>0</td><td>0</td><td>0</td><td>0</td>
-    <td>0</td><td>0</td><td>1</td><td>0</td>
-    <td>0</td><td>0</td><td>1</td><td>1</td>
-    <td>0</td><td>0</td><td>0</td><td>1</td>
-    <td>1</td><td>1</td><td>0</td><td>0</td>
-    <td>0</td><td>1</td><td>1</td><td>1</td>
-    <td>0</td><td>0</td><td>0</td><td>1</td>
-  </tr>
-</table>
-<hr>
-<table class="bitmap">
-  <tr>
-    <td><span style="display: inline-block; transform: scaleX(-1.5);">↵</span></td>
-    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
-    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
-    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td><td class="yellow">0</td>
-    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td><td class="yellow">1</td>
-    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td>
-    <td class="yellow">1</td><td class="yellow">1</td><td class="yellow">0</td><td class="yellow">0</td>
-    <td class="yellow">0</td><td class="orange">1</td><td class="orange">1</td><td class="orange">1</td>
-    <td>0</td><td>0</td><td>0</td><td>1</td>
-  </tr>
-  <tr>
-    <td>h >>> 7</td>
-    <td></td><td></td><td></td><td></td>
-    <td></td><td></td><td></td><td class="yellow">0</td>
-    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
-    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
-    <td class="yellow">0</td><td class="yellow">1</td><td class="yellow">0</td><td class="yellow">0</td>
-    <td class="yellow">0</td><td class="yellow">1</td><td class="yellow">1</td><td class="yellow">0</td>
-    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td><td class="yellow">1</td>
-    <td class="yellow">1</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
-  </tr>
-  <tr>
-    <td>h >>> 4</td>
-    <td></td><td></td><td></td><td></td>
-    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
-    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td>
-    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td><td class="yellow">0</td>
-    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td><td class="yellow">1</td>
-    <td class="yellow">0</td><td class="yellow">0</td><td class="yellow">0</td><td class="yellow">1</td>
-    <td class="yellow">1</td><td class="yellow">1</td><td class="yellow">0</td><td class="yellow">0</td>
-    <td class="yellow">0</td><td class="orange">1</td><td class="orange">1</td><td class="orange">1</td>
-  </tr>
-  <tr style="border-top: 3px double #555;">
-    <td>XOR</td>
-    <td>0</td><td>0</td><td>0</td><td>0</td>
-    <td>0</td><td>0</td><td>0</td><td>0</td>
-    <td>0</td><td>0</td><td>1</td><td>0</td>
-    <td>0</td><td>0</td><td>0</td><td>1</td>
-    <td>0</td><td>1</td><td>1</td><td>0</td>
-    <td>1</td><td>0</td><td>1</td><td>1</td>
-    <td>1</td><td>0</td><td>0</td><td>0</td>
-    <td class="pink">1</td><td class="pink">1</td><td class="pink">1</td><td class="pink">0</td>
-  </tr>
-  <tr>
-    <td colspan="33" style="border: none; text-align: end; line-height: 2">この値を使う↑</td>
-  </tr>
-</table>
-
-
----
-
-# データを格納
-
-- 先程の計算により**14番目の Bin に格納する**
-  - null なので、新しく Entry を作って格納
-
-![HashMap#put](img/entry_2.svg)
-
----
-
-# もうひとつデータを追加
-
 ```java
-map.put("JavaScript", 1995)
-```
-
-1. **どの Bin に格納するか**決める 
-  1. `key.hashCode()`  で値を取得（= 1266327981）
-  1. hash を計算 （**= 1331630014**）
-  2. 格納する Bin を決定（**= 14**）
-2. すでに同一の key が格納済み？
-  3. 格納済み → 値を上書き  
-  3. 未格納 →  Entry  を作成して格納
-
----
-
-# すでに14番目の Bin にデータがある
-
-![HashMap#put](img/entry_2_1.svg)
-
-<p style="margin-top: -1.8em;">
-同一の key が格納済み？<br>→ <strong>hash が一致</strong> かつ <strong>key が一致</strong>しているかどうか
-</p>
-
-```java
-hash == entry.hash && key.equals(entry.key)
-```
-
----
-# 未格納なので、 Entry  を追加
-
-- 新しく Entry  を作成して、14番目の Bin に格納
-  - すでに登録されている Entry  は、**next に格納**
-
-<hr>
-![HashMap#put](img/entry_3.svg)
-
----
-
-# さらにデータを追加
-
-```java
-m.put("C#", 2002);       // 3個目のデータ
-m.put("Scala", 2004);    // 4個目のデータ
-m.put("Kotlin", 2011);   // 5個目のデータ
-m.put("Python", 1991);   // 6個目のデータ
-m.put("Ruby", 1995);     // 7個目のデータ
-m.put("PHP", 1995);      // 8個目のデータ
-m.put("Go", 2011);       // 9個目のデータ
-m.put("Rust", 2013);     // 10個目のデータ
-m.put("Fortran", 1956);  // 11個目のデータ
-m.put("Perl", 1987);     // 12個目のデータ
-```
-
----
-
-# データを取得する
-
-```java
-map.get("Java")
-```
-
-1. どの Bin に格納されているか
-  1. `key.hashCode()`  で値を取得（= 2301506）
-  2. hash を計算（**= 2190222**）
-  3. 格納する Bin を決定（**= 14**）
-2. **すでに同一の key が格納済み？**
-  3. 格納済み → その値を返す
-  3. 未格納 → null を返す
-
----
-
-#  key に紐づく値を取得
-
-- 14番目の Bin を起点に Entry をたどる
-  - **hash が一致** かつ **key が一致**する → **その value を返す**
-
-<hr>
-![HashMap#get](img/entry_3_1.svg)
-
----
-
-# さらにデータを追加
-
-```java
-m.put("C", 1972); // 13個目のデータ
-```
-
-* `threshold (=12)` を超えた   
-→ **テーブルの再構築を行う**
-
----
-
-# 再構築（rehash）処理
-
-
-1. **2倍**の容量のテーブル<span class="remark">（Entry配列）</span>を作成
-2. インデックスを再計算し、新テーブルに Entry  を格納
-  *  Bin が2分割される
-
-<hr>
-
-![HashMap の rehash](img/entry_rehash.svg)
-
----
-
-class: center, middle
-
-# 効率良く使うためのコツ
-
----
-
-# 十分な容量を指定する
-
-- 13個以上格納するなら、**容量を指定する**
-  - rehash が減らせるため
-  - 指定する値は、負荷係数<span class="remark">（loadFactor）</span>の考慮が必要
-
-```java
-// 最低32個のデータを格納する場合、
-// 32 * (1 / 0.75) = 43（切り上げ）を指定する
-Map<String, Integer> map = new HashMap<>(43);
-
-// Java19以降なら、格納個数を指定するメソッドが使える
-Map<String, Integer> map = HashMap.newHashMap(32);
-```
-
----
-
-# hashCode() の実装を気をつける
-
-- 自作のオブジェクトを key に使用する場合、よく考慮して `hashCode()`を実装する
-  - できるだけ値が重複しないようにする
-  - **周期性がないようにする**<span class="remark">（良くない例：必ず偶数になる）</span>
-
-## 簡単な実装方法
-  - `Objects.hash(Object... values)` を使用する
-  - [Lombok](https://projectlombok.org/) を使用する
-  - Record クラスを使用する<span class="remark">（Java16 以降）</span>
-
----
-
-class: center, middle
-
-# Java のバージョンごとの実装の違い
-
----
-
-# 遅延初期化（Java 7 Update 40 〜）
-
-[JDK-8011200: Optimize empty ArrayList and HashMap](https://bugs.openjdk.org/browse/JDK-8011200)
-
-- HashMap のコンストラクタで、テーブル（配列）の作成を行わなくなった
-  - **最初にデータを追加する**際に、テーブルを作成する
-
----
-
-# TreeMap への切り替え (Java 8 〜)
-
-[JEP 180: Handle Frequent HashMap Collisions with Balanced Trees](https://openjdk.org/jeps/180)
-
-- Bin に Entry が8つ以上格納された場合、ツリー構造に切り替える
-  - hash の大小でツリーをたどる
-  - hash が一致する場合、さらに Key が Compable インタフェースを実装していれば、その比較でツリーをたどる
-- これにより、hashCode() の値に偏りがあっても**必要な比較回数が少なくなる**
-
----
-
-# TreeMap への切り替え (Java 8 〜)
-
-![HashMapのツリー構造](img/entry_tree.svg)
-
-
----
-
-# hash メソッドの変更 (Java 8 〜)
-
-上位ビット16 ビットを、下位に XOR するだけになった
-
-```java
-static int hash(Object key) {
-  int h = key.hashCode()
-  return h ^ (h >>> 16);
+static final int hash(Object key) {
+  int h;
+  return (key == null) ? 0 
+               : (h = key.hashCode()) ^ (h >>> 16);
 }
 ```
 
-`"Java".hashCode()` <span class="remark">（= 0x00231E42）
-</span>の場合
+`"Java".hashCode()` <span class="remark">（= 0x00231E42）</span>の場合
+
 
 <table class="bitmap">
   <tr>
@@ -764,16 +453,207 @@ static int hash(Object key) {
     <td>0</td><td>1</td><td>1</td><td>0</td>
     <td class="pink">0</td><td class="pink">0</td><td class="pink">0</td><td class="pink">1</td>
   </tr>
+  <tr>
+    <td colspan="33" style="border: none; text-align: end; line-height: 2">この値を使う↑</td>
+  </tr>
 </table>
+
+---
+
+# データを格納
+
+- 先程の計算により**1番目の Bin に格納する**
+  - null なので、新しく Node を作って格納
+
+![HashMap#put](img/entry_2.svg)
+
+---
+
+# もうひとつデータを追加
+
+```java
+map.put("Basic", 1964)
+```
+
+1. **どの Bin に格納するか**決める 
+  1. `key.hashCode()`  で値を取得（= 63955982）
+  1. hash を計算 （**= 63956929**）
+  2. 格納する Bin を決定（**= 1**）
+2. すでに同一の key が格納済み？
+  3. 格納済み → 値を上書き  
+  3. 未格納 →  Node  を作成して格納
+
+---
+
+# すでに1番目の Bin にデータがある
+
+![HashMap#put](img/entry_2_1.svg)
+
+<p style="margin-top: -0.5em;">
+同一の key が格納済み？<br>→ <strong>hash が一致</strong> かつ <strong>key が一致</strong>しているかどうか
+</p>
+
+```java
+hash == node.hash && key.equals(node.key)
+```
+
+---
+# 未格納なので、 Node  を追加
+
+- 新しく Node  を作成して、1番目の Bin に格納
+  - すでに登録されている Node  の **next に格納**
+
+<hr>
+![HashMap#put](img/entry_3.svg)
+
+---
+
+# さらにデータを追加
+
+```java
+map.put("Go", 2011);        // 3個目のデータ
+map.put("C#", 2002);        // 4個目のデータ
+map.put("Smalltalk", 1980); // 5個目のデータ
+map.put("Kotlin", 2011);    // 6個目のデータ
+map.put("Python", 1991);    // 7個目のデータ
+map.put("Ruby", 1995);      // 8個目のデータ
+map.put("PHP", 1995);       // 9個目のデータ
+map.put("Rust", 2013);      // 10個目のデータ
+map.put("Fortran", 1956);   // 11個目のデータ
+map.put("Perl", 1987);      // 12個目のデータ
+```
+
+---
+
+# データを取得する
+
+```java
+map.get("Java")
+```
+
+1. どの Bin に格納されているか
+  1. `key.hashCode()` で値を取得（= 2301506）
+  2. hash を計算（**= 2301537**）
+  3. 格納する Bin を決定（**= 1**）
+2. **すでに同一の key が格納済み？**
+  3. 格納済み → その値を返す
+  3. 未格納 → null を返す
+
+---
+
+#  key に紐づく値を取得
+
+- 1番目の Bin を起点に Node をたどる
+  - **hash が一致** かつ **key が一致**する → **その value を返す**
+
+<hr>
+![HashMap#get](img/entry_3_1.svg)
+
+---
+
+# ℹ️ 効率良く使うためのヒント
+
+- Bin 内のデータが少数<span class="remark">（理想的には1個）</span>だと効率が良い
+  - 比較回数が少なくて済むから
+- そのために、**hashCode の値が分散しているのがよい**
+
+<br>
+自作のオブジェクトをキーにする場合、  
+**hashCode メソッドの実装に注意しましょう！**
+  - できるだけ値が重複しないようにする
+  - 周期性がないようにする<span class="remark">（良くない例：必ず偶数になる）</span>
+
+---
+## ⚠️ 良くない実装
+
+- ひとつの Bin にすべてのデータが集中する
+
+```java
+public int hashCode() {
+  return 1;
+}
+```
+
+## 💡 簡単で良い実装
+
+- `Objects.hash(Object... values)` を使用する
+- [Lombok](https://projectlombok.org/) を使用する
+- Record クラスを使用する<span class="remark">（Java16 以降）</span>
+
+
+---
+
+# さらにデータを追加
+
+```java
+map.put("C", 1972); // 13個目のデータ
+```
+
+* `threshold (=12)` を超えた   
+→ **テーブルの再構築を行う**  
+　→ これにより、ひとつの Bin に含まれるデータが減る
+
+---
+
+# 再構築（rehash）処理
+
+
+1. **2倍**の容量のテーブル<span class="remark">（Node配列）</span>を作成
+2. インデックスを再計算し、新テーブルに Node を格納
+  * Bin が2分割される
+
+<hr>
+
+![HashMap の rehash](img/entry_rehash.svg)
+
+---
+
+# ℹ️ 効率良く使うためのヒント
+
+- 13個以上格納するなら、**容量を指定する**
+  - rehash が減らせるため
+  - 指定する値は、負荷係数<span class="remark">（loadFactor）</span>の考慮が必要
+
+```java
+// 最低32個のデータを格納する場合、
+// 32 * (1 / 0.75) = 43（切り上げ）を指定する
+Map<String, Integer> map = new HashMap<>(43);
+
+// Java19以降なら、格納個数を指定するメソッドが使える
+Map<String, Integer> map = HashMap.newHashMap(32);
+```
+
+---
+
+class: center, middle
+
+# Java のバージョンごとの実装の違い
+
+---
+
+# TreeMap への切り替え (Java 8 〜)
+
+[JEP 180: Handle Frequent HashMap Collisions with Balanced Trees](https://openjdk.org/jeps/180)
+
+- Bin に Node が8つ以上格納された場合、ツリー構造に切り替える
+  - hash の大小でツリーをたどる
+  - hash が一致する場合、さらに Key が Compable インタフェースを実装していれば、その比較でツリーをたどる
+- これにより、hashCode() の値に偏りがあっても**必要な比較回数が少なくなる**
+
+---
+
+# TreeMap への切り替え (Java 8 〜)
+
+![HashMapのツリー構造](img/entry_tree.svg)
 
 ---
 
 # まとめ
 
-- HashMap は、テーブル（配列）にデータを格納している
-- 適切にハッシュが分散していれば、高速にデータを出し入れできる
-   - そのために、key の hashCode() メソッドの実装が大事
-- 必要に応じて、最適な初期容量を指定しましょう
+- HashMap は、テーブル<span class="remark">（配列）</span>にデータを格納している
+- 高速にデータを取得できる
+   - そのためには、hashCode() メソッドの実装が大事！
+- 最適な初期容量を指定すると、効率が良い
 
 <br>
 - **ぜひソースコードを読んでみましょう！**
@@ -798,6 +678,19 @@ class: center, middle
 
 ---
 
+# 📖 ソースコードを読む
+
+- おすすめは <a href="jdk/6/HashMap.java" target="_blank">Java 6 時点のソースコード</a>
+  - Java 8 以降は、TreeMap へ作り変える処理があるので複雑になっているから
+      - Java 6 … 512行
+      - Java 8 … 1648行
+      - Java 24 … 1704行
+- <a href="jdk/2/HashMap.java" target="_blank">Java 1.2</a> <span class="remark">（HashMap のリリースバージョン）</span>もおすすめ
+  - とても単純な実装になっている
+
+---
+
+
 # 割り算はどのぐらい遅いのか？
 
 - Pentium 4 の場合
@@ -814,10 +707,10 @@ class: center, middle
 
 ---
 
-# Bin には何個の Entry が格納されるか
+# Bin には何個の Node が格納されるか
 
 - 実装メモより<span class="remark">（要約）</span>
-  - `hashCode()` の値が理想的（= ランダム値）場合、テーブル容量と同じ数のデータを入れた際にひとつの Bin に格納される Entry の数は**ポアソン分布に従う**とのこと
+  - `hashCode()` の値が理想的（= ランダム値）場合、テーブル容量と同じ数のデータを入れた際にひとつの Bin に格納される Node の数は**ポアソン分布に従う**とのこと
 
 <div class="flex">
 <ul>
