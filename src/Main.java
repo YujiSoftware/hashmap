@@ -1,5 +1,4 @@
 import java.util.HashMap;
-import java.util.Map;
 
 public class Main {
     public static void main(String[] args) {
@@ -20,5 +19,9 @@ public class Main {
         System.out.println(map.get("Java"));
 
         map.put("C", 1972);
+
+        for (var entry : map.entrySet()) {
+            System.out.println(entry);
+        }
     }
 }

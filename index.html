@@ -267,13 +267,15 @@ class: center, middle
 
 ```java
 var map = new HashMap<String, Integer>();
-map.put("Java", 1995);       // 1個目のデータ
-map.put("JavaScript", 1995); // 2個目のデータ
+map.put("Java", 1995);       // 1個目のデータを格納
+map.put("JavaScript", 1995); // 2個目のデータを格納
 … 中略 …
-
 System.out.println(map.get("Java")); // 取得して表示
+map.put("C", 1972);          // 13個目のデータを格納
 
-map.put("C", 1972);            // 13個目のデータ
+for (var entry : map.entrySet()) {
+  System.out.println(entry); // ループして取得
+}
 ```
 
 ---
@@ -380,7 +382,7 @@ int i = indexFor(hash);
 
 ---
 
-# indexFor メソッドの解説
+# indexFor メソッドの内容
 
 - どの Bin に格納するか決める<span class="remark">（今回は 0〜15 のいずれか）</span>  
   → `key.hashCode() % table.length` を求める？
@@ -397,7 +399,7 @@ static int indexFor(int h, int length) {
 
 ---
 
-# hash メソッドの解説
+# hash メソッドの内容
 
 - オブジェクトによっては `hashCode()` の下位ビットがあまり変化しない実装になっていることがある
     - Float とか <span class="remark">（例えば、1.0f と 2.0f で下位ビットが同じ）</span>
@@ -406,7 +408,7 @@ static int indexFor(int h, int length) {
 
 ---
 
-# hash の計算
+# hash メソッドの詳細
 
 ```java
 static final int hash(Object key) {
@@ -498,7 +500,7 @@ hash == node.hash && key.equals(node.key)
 ```
 
 ---
-# 未格納なので、 Node  を追加
+# 格納されていないので、 Node  を追加
 
 - 新しく Node  を作成して、1番目の Bin に格納
   - すでに登録されている Node  の **next に格納**
@@ -580,7 +582,6 @@ public int hashCode() {
 - [Lombok](https://projectlombok.org/) を使用する
 - Record クラスを使用する<span class="remark">（Java16 以降）</span>
 
-
 ---
 
 # さらにデータを追加
@@ -625,26 +626,28 @@ Map<String, Integer> map = HashMap.newHashMap(32);
 
 ---
 
-class: center, middle
+# ループして取り出し
 
-# Java のバージョンごとの実装の違い
+```java
+for (var e : map.entrySet()) 
+```
 
----
+- 各 Bin からノードを順に取り出す
+  - Rehash などによって、順序は変わる
 
-# TreeMap への切り替え (Java 8 〜)
-
-[JEP 180: Handle Frequent HashMap Collisions with Balanced Trees](https://openjdk.org/jeps/180)
-
-- Bin に Node が8つ以上格納された場合、ツリー構造に切り替える
-  - hash の大小でツリーをたどる
-  - hash が一致する場合、さらに Key が Compable インタフェースを実装していれば、その比較でツリーをたどる
-- これにより、hashCode() の値に偏りがあっても**必要な比較回数が少なくなる**
+![HashMap の rehash](img/entry_loop.svg)
 
 ---
 
-# TreeMap への切り替え (Java 8 〜)
+## ℹ️ なぜ順序を保証しないのか
 
-![HashMapのツリー構造](img/entry_tree.svg)
+- 順序の管理にコストがかかるから
+  - HashMap の特徴のひとつである**速さが犠牲になる**
+
+<br>
+- 順序が必要なら、クラスを使い分ける
+  - アクセス順序や挿入順序で取り出したいなら **LinkedHashMap** を使う
+  - キーのソート順で取り出したいなら **TreeMap**を使う
 
 ---
 
@@ -687,6 +690,20 @@ class: center, middle
       - Java 24 … 1704行
 - <a href="jdk/2/HashMap.java" target="_blank">Java 1.2</a> <span class="remark">（HashMap のリリースバージョン）</span>もおすすめ
   - とても単純な実装になっている
+
+---
+
+# 特定の Bin に集中したとき
+
+- Bin に Node が8つ以上格納された場合、**ツリー構造に切り替わる**
+  - hash の大小でツリーをたどる
+  - hash が一致する場合、もし Key が Compable インタフェースを実装していれば、その比較でツリーをたどる
+
+---
+
+# ツリー構造への切り替え
+
+![HashMapのツリー構造](img/entry_tree.svg)
 
 ---
 
